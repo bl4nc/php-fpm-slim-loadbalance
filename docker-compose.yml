@@ -6,80 +6,82 @@ services:
     image: redis:latest
     restart: always
     ports:
-      - '6380:6379'
+      - '6379:6379'
     command: redis-server --save 20 1 --loglevel warning --requirepass 09f6caaa-e69c-11ec-a08d-0242ac170002
     volumes: 
       - redis_cache:/data
     networks:
-      - rede_local
+      - local
 
   nginx_server:
     image: nginx:latest
     restart: always
     ports: 
       - 8080:80
- 
     volumes:
     - ./logs:/logs
     - ./config/server/default.conf:/etc/nginx/conf.d/default.conf
     - ./config/server/nginx.conf:/etc/nginx/nginx.conf
-    - ./config/server/cache:/var/cache/nginx
-    - ./config/server/cache/tmp:/var/cache/nginx/tmp
     networks:
-      - rede_local
+      - local
     depends_on:
-      - redis_gradus
+      - redis
       - database
       - app_node_1
       - app_node_2
       - app
 
-    
   app_node_1:
+    container_name: app_node_1
     image: nginx:latest
     restart: always
     ports: 
       - 80
     volumes:
-      - ./config/front/site.conf:/etc/nginx/conf.d/default.conf
-      - ./gradus/front:/app
-      - ./uploads:/app/uploads
+      - ./config/app/site.conf:/etc/nginx/conf.d/default.conf
+      - ./src:/app
     links:
-      - gradus_front
+      - app
+    depends_on:
+      - redis
+      - database
+      - app
     networks:
-      - rede_local
+      - local
 
   app_node_2:
+    container_name: app_node_2
     image: nginx:latest
     restart: always
     ports: 
       - 80
     volumes:
-      - ./config/front/site.conf:/etc/nginx/conf.d/default.conf
-      - ./gradus/front:/app
-      - ./uploads:/app/uploads
+      - ./config/app/site.conf:/etc/nginx/conf.d/default.conf
+      - ./src:/app
     links:
-      - gradus_front
+      - app
+    depends_on:
+      - redis
+      - database
+      - app
     networks:
-      - rede_local
+      - local
 
   app:
-    build: gradus/api_v1
+    container_name: app
+    build: src
     restart: always
-    container_name: gradus_api_v1
     volumes:
-      - ./gradus/api_v1:/api
-      - ./uploads:/api/arquivos_gradus:rw
+      - ./src:/app
       - ./config/fpm.conf:/usr/local/etc/php-fpm.d/www.conf  
     depends_on:
       - redis
       - database
     networks:
-      - rede_local
+      - local
   
   database:
     image: mariadb:latest
-    container_name: api_mariadb
     restart: unless-stopped
     tty: true
     volumes:
@@ -93,10 +95,10 @@ services:
     ports:
       - "3306:3306"
     networks:
-      - api
+      - local
 
 networks:
-  rede_local:
+  local:
     driver: bridge
 
 volumes:

@@ -3,3 +3,4 @@ composer.phar
 /uploads/*
 composer.lock
 *.log
+/bd
