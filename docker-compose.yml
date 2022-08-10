@@ -104,8 +104,3 @@ networks:
 volumes:
   redis_cache:
     driver: local
-
-
-       
-
-        
