@@ -1,0 +1,109 @@
+version : '3.2'
+
+services: 
+
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - '6380:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass 09f6caaa-e69c-11ec-a08d-0242ac170002
+    volumes: 
+      - redis_cache:/data
+    networks:
+      - rede_local
+
+  nginx_server:
+    image: nginx:latest
+    restart: always
+    ports: 
+      - 8080:80
+ 
+    volumes:
+    - ./logs:/logs
+    - ./config/server/default.conf:/etc/nginx/conf.d/default.conf
+    - ./config/server/nginx.conf:/etc/nginx/nginx.conf
+    - ./config/server/cache:/var/cache/nginx
+    - ./config/server/cache/tmp:/var/cache/nginx/tmp
+    networks:
+      - rede_local
+    depends_on:
+      - redis_gradus
+      - database
+      - app_node_1
+      - app_node_2
+      - app
+
+    
+  app_node_1:
+    image: nginx:latest
+    restart: always
+    ports: 
+      - 80
+    volumes:
+      - ./config/front/site.conf:/etc/nginx/conf.d/default.conf
+      - ./gradus/front:/app
+      - ./uploads:/app/uploads
+    links:
+      - gradus_front
+    networks:
+      - rede_local
+
+  app_node_2:
+    image: nginx:latest
+    restart: always
+    ports: 
+      - 80
+    volumes:
+      - ./config/front/site.conf:/etc/nginx/conf.d/default.conf
+      - ./gradus/front:/app
+      - ./uploads:/app/uploads
+    links:
+      - gradus_front
+    networks:
+      - rede_local
+
+  app:
+    build: gradus/api_v1
+    restart: always
+    container_name: gradus_api_v1
+    volumes:
+      - ./gradus/api_v1:/api
+      - ./uploads:/api/arquivos_gradus:rw
+      - ./config/fpm.conf:/usr/local/etc/php-fpm.d/www.conf  
+    depends_on:
+      - redis
+      - database
+    networks:
+      - rede_local
+  
+  database:
+    image: mariadb:latest
+    container_name: api_mariadb
+    restart: unless-stopped
+    tty: true
+    volumes:
+      - ./bd/mariadb:/var/lib/mysql/
+    environment:
+      - MYSQL_ROOT_PASSWORD=root-pass
+      - MYSQL_DATABASE=api
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=pass
+      - TZ=America/Sao_Paulo
+    ports:
+      - "3306:3306"
+    networks:
+      - api
+
+networks:
+  rede_local:
+    driver: bridge
+
+volumes:
+  redis_cache:
+    driver: local
+
+
+       
+
+        

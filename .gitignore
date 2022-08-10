@@ -1,0 +1,5 @@
+composer.phar
+/src/vendor
+/uploads/*
+composer.lock
+*.log
